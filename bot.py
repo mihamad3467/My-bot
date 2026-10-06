@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.enums import ChatMemberStatus, ChatType, ParseMode
+from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.filters import Command, CommandObject
 from aiogram.types import CallbackQuery, ChatPermissions, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -352,7 +353,7 @@ async def main():
     if not TOKEN or TOKEN == "ضع_توكن_البوت_هنا":
         raise SystemExit("ضع BOT_TOKEN في ملف .env أولًا")
     init_db()
-    bot = Bot(TOKEN, parse_mode=ParseMode.HTML)
+    bot = Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     router = Router()
     router.message.register(cmd_rules, Command("rules"))
