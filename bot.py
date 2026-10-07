@@ -1,5 +1,5 @@
 # ==============================================================================
-# 🌟 المشروع الأسطوري: اليوزر بوت الفخم والضخم (Mega Userbot v3.0 - Cloud Ready)
+# 🌟 المشروع الأسطوري: اليوزر بوت الفخم والضخم (Mega Userbot Pro v4.0 - Ultimate Cloud)
 # ==============================================================================
 
 import os
@@ -9,44 +9,53 @@ import datetime
 import random
 import asyncio
 import math
+import base64
 from telethon import TelegramClient, events, Button
 import telethon.tl.functions.users
 import telethon.tl.types
 import telethon.tl.functions.channels
 import telethon.tl.functions.messages
+import telethon.tl.functions.account
 
 # --- إعدادات الحساب الأساسية ---
 API_ID = 29652742
 API_HASH = "9ebdbaf1a6184aae6d6d096a9edeaffd"
 MY_ACCOUNT_ID = 8808657227
 
-# استخدام ملف الجلسة المحلي الموجود في المستودع مباشرة لتجنب مشاكل المتغيرات
+# استخدام ملف الجلسة المحلي الموجود في المستودع مباشرة لضمان العمل المستقر
 client = TelegramClient('my_userbot_v1', API_ID, API_HASH)
 
 # --- الهياكل ومتغيرات الحالة العامة ---
 CUSTOM_AUTO_REPLY = {"text": None}
 STOP_SPAM = {"status": False}
+AUTO_BIO_STATUS = {"status": False}
+AFK_MODE = {"status": False, "reason": "غير متواجد حالياً 🔒"}
 BOT_START_TIME = datetime.datetime.now()
 
-# قاموس الزخارف العربية والإنجليزية الفخمة
+# قاموس الزخارف العربية الفخمة
 ARABIC_DECORATIONS = {
     "1": lambda t: f"『 {t} 』",
     "2": lambda t: f"★[ {t} ]★",
     "3": lambda t: f"卍 {t} 卍",
     "4": lambda t: f"『✦』 {t} 『✦』",
-    "5": lambda t: f"【 {t} 】"
+    "5": lambda t: f"【 {t} 】",
+    "6": lambda t: f"༒ {t} ༒",
+    "7": lambda t: f" ▂▃▄▅▆▇ {t} ▇▆▅▄▃▂ ",
+    "8": lambda t: f"༺ {t} ༻"
 }
 
+# قاموس الزخارف الإنجليزية الفخمة
 ENGLISH_DECORATIONS = {
     "1": lambda t: "".join(chr(ord(c) + 119735) if 'a' <= c <= 'z' else (chr(ord(c) + 119729) if 'A' <= c <= 'Z' else c) for c in t),
     "2": lambda t: "".join(chr(ord(c) + 120119) if 'a' <= c <= 'z' else (chr(ord(c) + 120113) if 'A' <= c <= 'Z' else c) for c in t),
     "3": lambda t: f"𝒯:: {t} ::𝒯",
-    "4": lambda t: f"✨ ⦋ {t} ⦃ 🌟 ⦄ ⦊ ✨"
+    "4": lambda t: f"✨ ⦋ {t} ⦃ 🌟 ⦄ ⦊ ✨",
+    "5": lambda t: "".join(chr(ord(c) + 120211) if 'a' <= c <= 'z' else (chr(ord(c) + 120205) if 'A' <= c <= 'Z' else c) for c in t)
 }
 
 
 # ==============================================================================
-# القسم الأول: نظام الرد التلقائي والأوفلاين الذكي
+# القسم الأول: نظام الرد التلقائي، الأوفلاين، ونظام الـ AFK الذكي
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/اضافة_رد_تلقائي (.*)$'))
@@ -74,9 +83,30 @@ async def show_custom_reply(event):
     else:
         await client.send_message(event.chat_id, "📭 لا يوجد أي رد تلقائي مسجل حالياً.")
 
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/afk(?:\s+(.*))?$'))
+async def set_afk_mode(event):
+    await event.delete()
+    reason = event.pattern_match.group(1)
+    if reason:
+        AFK_MODE["reason"] = reason
+    AFK_MODE["status"] = True
+    await client.send_message(event.chat_id, f"💤 **تم تفعيل وضع البعد (AFK) بنجاح!**\n📌 **السبب:** `{AFK_MODE['reason']}`")
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/الغاء_afk$'))
+async def disable_afk_mode(event):
+    await event.delete()
+    AFK_MODE["status"] = False
+    await client.send_message(event.chat_id, "⚡ **تم إلغاء وضع البعد (AFK) وعودتك للنشاط.**")
+
 @client.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
-async def offline_auto_reply_engine(event):
+async def global_incoming_handler(event):
     try:
+        # نظام الـ AFK التلقائي للرسائل الواردة
+        if AFK_MODE["status"]:
+            await event.reply(f"💤 **عذراً، صاحب الحساب غائب حالياً.**\n📌 **السبب:** `{AFK_MODE['reason']}`\n🤖 تم إرسال هذا الرد تلقائياً عبر اليوزر بوت الفخم.")
+            return
+
+        # نظام الرد التلقائي
         reply_text = CUSTOM_AUTO_REPLY.get("text")
         if not reply_text:
             return
@@ -85,11 +115,11 @@ async def offline_auto_reply_engine(event):
         if is_offline and event.raw_text.strip():
             await event.reply(reply_text)
     except Exception as e:
-        print(f"Error in auto-reply: {e}")
+        print(f"Error in incoming handler: {e}")
 
 
 # ==============================================================================
-# القسم الثاني: النظام التفاعلي الخرافي (الزخرفة والترجمة بالأزرار الشفافة)
+# القسم الثاني: النظام التفاعلي الخرافي (لوحات الأزرار الشفافة المتكاملة)
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/زخرفة(?:\s+(.*))?$'))
@@ -162,7 +192,7 @@ async def translate_menu(event):
             return
 
     buttons = [
-        [Button.inline("🌐 الترجمة الفورية إلى العربية (AR)", data=f"tr_ar_{text}")],
+        [Button.inline("🌐 الترجمة إلى العربية (AR)", data=f"tr_ar_{text}")],
         [Button.inline("🇺🇸 Translate to English (EN)", data=f"tr_en_{text}")],
         [Button.inline("🇫🇷 Traduire en Français (FR)", data=f"tr_fr_{text}")],
         [Button.inline("🇪🇸 Traducir al Español (ES)", data=f"tr_es_{text}")]
@@ -190,7 +220,7 @@ async def translate_callback(event):
 
 
 # ==============================================================================
-# القسم الثالث: أدوات الحسابات والمعلومات الشاملة (/id وغيرها)
+# القسم الثالث: أدوات الحسابات والمعلومات الشاملة والتحكم بالملف الشخصي
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/id$'))
@@ -244,9 +274,29 @@ async def my_full_info(event):
     )
     await client.send_message(event.chat_id, text)
 
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/تغيير_الاسم\s+(.*)$'))
+async def change_my_name(event):
+    await event.delete()
+    new_name = event.pattern_match.group(1)
+    try:
+        await client(telethon.tl.functions.account.UpdateProfileRequest(first_name=new_name))
+        await client.send_message(event.chat_id, f"✅ **تم تغيير اسمك بنجاح إلى:** `{new_name}`")
+    except Exception as e:
+        await client.send_message(event.chat_id, f"❌ حدث خطأ أثناء تغيير الاسم: {e}")
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/تغيير_البايو\s+(.*)$'))
+async def change_my_bio(event):
+    await event.delete()
+    new_bio = event.pattern_match.group(1)
+    try:
+        await client(telethon.tl.functions.account.UpdateProfileRequest(about=new_bio))
+        await client.send_message(event.chat_id, f"✅ **تم تغيير البايو بنجاح إلى:**\n`{new_bio}`")
+    except Exception as e:
+        await client.send_message(event.chat_id, f"❌ حدث خطأ أثناء تغيير البايو: {e}")
+
 
 # ==============================================================================
-# القسم الرابع: التكرار الصاروخي، المقالب، والتحكم بالرسائل
+# القسم الرابع: التكرار الصاروخي، المقالب، والتحكم الفائق بالرسائل
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/تكرار\s+(\d+)\s+(.*)$'))
@@ -261,7 +311,7 @@ async def repeat_message(event):
             break
         try:
             await client.send_message(event.chat_id, text)
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.04)
         except Exception:
             break
 
@@ -280,11 +330,12 @@ async def spam_joke(event):
         "اقول تبي صامولي حار ولا فطيرة جبن؟ 🍔",
         "ياخي إنت منور الخاص عندي صراحة 🔥",
         "جالس أجرب اليوزر بوت الأسطوري الجديد عليك لا تدقق 😂",
-        "يا هلا والله بالغايب الي ما يغيب 🚀"
+        "يا هلا والله بالغايب الي ما يغيب 🚀",
+        "العب يا فنان وخل الأمور على السيرفر السحابي ⚡"
     ]
     for j in jokes:
         await client.send_message(event.chat_id, j)
-        await asyncio.sleep(0.4)
+        await asyncio.sleep(0.3)
 
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/حذف\s+(\d+)$'))
@@ -296,7 +347,7 @@ async def delete_my_messages(event):
         try:
             await msg.delete()
             deleted += 1
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.04)
         except Exception:
             pass
     temp = await client.send_message(event.chat_id, f"🗑️ **تم بنجاح حذف {deleted} من رسائلك السابقة.**")
@@ -305,7 +356,7 @@ async def delete_my_messages(event):
 
 
 # ==============================================================================
-# القسم الخامس: السرعة، الأدوات، والوقت والذكاء
+# القسم الخامس: السرعة، الأدوات، الوقت، والعمليات الحسابية
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^(?:/سرعة|/ping)$'))
@@ -314,7 +365,7 @@ async def ping_cmd(event):
     event = await event.edit("⚡ **جاري قياس سرعة الاستجابة الخارقة...**")
     end = datetime.datetime.now()
     ms = (end - start).microseconds / 1000
-    await event.edit(f"⚡ **سرعة استجابة السيرفر:** `{ms} ms` 🚀🔥")
+    await event.edit(f"⚡ **سرعة استجابة السيرفر السحابي:** `{ms} ms` 🚀🔥")
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/وقت$'))
 async def time_cmd(event):
@@ -337,7 +388,7 @@ async def calculator_cmd(event):
 
 
 # ==============================================================================
-# القسم السادس: التسلية، الألعاب، والحظ
+# القسم السادس: التسلية، الألعاب، والحظ المتقدم
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/حكمة$'))
@@ -347,7 +398,8 @@ async def wisdom_cmd(event):
         "«لا تحزن على ما فات، واجعل الغد أفضل من الأمس.» 🌟",
         "«النجاح ليس قاعاً يُحتل، بل قمة تُستحق بجهدك وصبرك.» 🦅",
         "«الوقت كالسيف إن لم تقطعه قطعك.» ⏳",
-        "«من يتردد في اتخاذ القرار يفقد نصف حماسه.» 💡"
+        "«من يتردد في اتخاذ القرار يفقد نصف حماسه.» 💡",
+        "«الاصدقاء الحقيقيون كالنجوم، لا تراهم دائماً لكنك تعلم أنها موجودة.» ✨"
     ]
     await client.send_message(event.chat_id, f"💡 **حكمة اليوم الفخمة:**\n\n{random.choice(wisdoms)}")
 
@@ -360,12 +412,12 @@ async def coin_cmd(event):
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/حظك$'))
 async def luck_cmd(event):
     await event.delete()
-    percentage = random.randint(15, 100)
+    percentage = random.randint(20, 100)
     await client.send_message(event.chat_id, f"🎲 **نسبة حظك اليوم:** `{percentage}%` ✨")
 
 
 # ==============================================================================
-# القسم السابع: الإدارة والتحكم في المجموعات
+# القسم السابع: الإدارة المتقدمة والتحكم الكامل في المجموعات والقنوات
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/تثبيت$'))
@@ -380,7 +432,7 @@ async def pin_message_cmd(event):
         await asyncio.sleep(3)
         await temp.delete()
     except Exception as e:
-        await client.send_message(event.chat_id, f"❌ فشل التثبيت: تأكد من صلاحياتك المشرف. ({e})")
+        await client.send_message(event.chat_id, f"❌ فشل التثبيت: تأكد من صلاحيات المشرف. ({e})")
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/فك_تثبيت$'))
 async def unpin_message_cmd(event):
@@ -393,29 +445,59 @@ async def unpin_message_cmd(event):
     except Exception as e:
         await client.send_message(event.chat_id, f"❌ فشل إلغاء التثبيت: {e}")
 
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/كتم$'))
+async def mute_user_cmd(event):
+    await event.delete()
+    reply = await event.get_reply_message()
+    if not reply:
+        await client.send_message(event.chat_id, "⚠️ **الرجاء الرد على رسالة الشخص المراد كتمه.**")
+        return
+    try:
+        await client.edit_permissions(event.chat_id, reply.sender_id, send_messages=False)
+        await client.send_message(event.chat_id, "🔇 **تم كتم المستخدم بنجاح في المجموعة.**")
+    except Exception as e:
+        await client.send_message(event.chat_id, f"❌ فشل الكتم: {e}")
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/الغاء_كتم$'))
+async def unmute_user_cmd(event):
+    await event.delete()
+    reply = await event.get_reply_message()
+    if not reply:
+        await client.send_message(event.chat_id, "⚠️ **الرجاء الرد على رسالة الشخص.**")
+        return
+    try:
+        await client.edit_permissions(event.chat_id, reply.sender_id, send_messages=True)
+        await client.send_message(event.chat_id, "🔊 **تم إلغاء كتم المستخدم بنجاح.**")
+    except Exception as e:
+        await client.send_message(event.chat_id, f"❌ فشل إلغاء الكتم: {e}")
+
 
 # ==============================================================================
-# القسم الثامن: قائمة الأوامر الشاملة (رئيسية البوت)
+# القسم الثامن: قائمة الأوامر الأسطورية الشاملة (رئيسية البوت الفخمة)
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/اوامر$'))
 async def show_commands(event):
     text = (
-        "🔥 **قائمة الأوامر الأسطورية الشاملة والضخمة** 🔥\n\n"
+        "🔥 **قائمة الأوامر الأسطورية الشاملة والضخمة (Pro v4.0)** 🔥\n\n"
         "💬 **1. قسم النصوص والأزرار التفاعلية:**\n"
         "• `/زخرفة [النص]` ⟸ يفتح لك لوحة أزرار زخرفة عربية وإنجليزية فخمة.\n"
         "• `/ترجمة [النص]` ⟸ يفتح لك لوحة أزرار ترجمة فورية متعددة اللغات.\n\n"
-        "🤖 **2. نظام الرد التلقائي والتكرار:**\n"
+        "🤖 **2. نظام الرد الآلي، الـ AFK، والتكرار:**\n"
         "• `/اضافة_رد_تلقائي [النص]` ⟸ تعيين رد أوفلاين فوري.\n"
         "• `/حذف_رد_تلقائي` ⟸ إيقاف الرد الآلي.\n"
         "• `/الرد_التلقائي` ⟸ عرض الرد الحالي.\n"
+        "• `/afk [السبب]` ⟸ تفعيل وضع الغياب والرد التلقائي.\n"
+        "• `/الغاء_afk` ⟸ العودة للنشاط.\n"
         "• `/تكرار [العدد] [النص]` ⟸ تكرار صاروخي (حتى 1000).\n"
         "• `/ايقاف_التكرار` ⟸ إيقاف التكرار فوراً.\n"
         "• `/قصف` ⟸ إرسال مقالب وسيناريوهات متتالية.\n"
         "• `/حذف [العدد]` ⟸ مسح رسائلك السابقة بسرعة.\n\n"
-        "👤 **3. أدوات الحسابات والمعلومات:**\n"
+        "👤 **3. أدوات الحسابات والملف الشخصي:**\n"
         "• `/id` ⟸ جلب معلومات الشخص كاملة (الصورة + البايو + الآيدي).\n"
-        "• `/معلوماتي` ⟸ تقرير شامل عن حسابك.\n\n"
+        "• `/معلوماتي` ⟸ تقرير شامل عن حسابك.\n"
+        "• `/تغيير_الاسم [الاسم الجديد]` ⟸ تغيير اسمك الأساسي.\n"
+        "• `/تغيير_البايو [النص الجديد]` ⟸ تغيير البايو فوراً.\n\n"
         "⚡ **4. السرعة والأدوات والشبكة:**\n"
         "• `/سرعة` أو `/ping` ⟸ قياس سرعة الاستجابة الخارقة.\n"
         "• `/وقت` ⟸ الوقت والتاريخ الحالي.\n"
@@ -424,17 +506,19 @@ async def show_commands(event):
         "• `/حكمة` ⟸ إرسال حكمة يومية عميقة.\n"
         "• `/عملة` ⟸ رمي عملة (صورة/كتابة).\n"
         "• `/حظك` ⟸ نسبة الحظ اليومي.\n\n"
-        "🛠️ **6. إدارة المجموعات:**\n"
+        "🛠️ **6. إدارة المجموعات والقنوات:**\n"
         "• `/تثبيت` ⟸ تثبيت رسالة بالرد.\n"
         "• `/فك_تثبيت` ⟸ إزالة التثبيت.\n"
+        "• `/كتم` ⟸ كتم عضو بالمجموعات بالرد.\n"
+        "• `/الغاء_كتم` ⟸ فك الكتم عن عضو.\n"
     )
     await event.edit(text)
 
 
 # --- رسالة بدء التشغيل الأساسية في السيرفر ---
 print("=" * 70)
-print("🚀 [MEGA USERBOT v3.0] تم تحميل السيرفر والأوامر بنجاح تام!")
-print("💡 حالة النظام: جاهز للعمل بكامل القوة والأزرار التفاعلية الفخمة.")
+print("🚀 [MEGA USERBOT PRO v4.0] تم تحميل السيرفر والأوامر بنجاح تام!")
+print("💡 حالة النظام: جاهز للعمل بكامل القوة، الأزرار التفاعلية، والأنظمة السحابية.")
 print("=" * 70)
 
 # بدء تشغيل البوت واستمراره
