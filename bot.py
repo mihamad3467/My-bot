@@ -1,6 +1,7 @@
 import os
 import datetime
 import random
+import asyncio
 from telethon import TelegramClient, events
 import telethon.tl.functions.users
 import telethon.tl.types
@@ -15,6 +16,9 @@ client = TelegramClient('my_userbot_v1', API_ID, API_HASH)
 
 # متغير لحفظ نص الرد التلقائي العام عند الأوفلاين
 CUSTOM_AUTO_REPLY = {"text": "اشوي اجيك"}
+
+# متغير للتحكم بإيقاف التكرار الجاري
+STOP_SPAM = {"status": False}
 
 # ==========================================
 # أوامر التحكم بالرد التلقائي العام (إضافة / حذف / عرض)
@@ -107,19 +111,33 @@ async def get_user_info(event):
 
 
 # ==========================================
-# قسم التكرار والخاص والمقالب
+# قسم التكرار السريع جداً (بدون تأخير وبحد أقصى 1000)
 # ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/تكرار\s+(\d+)\s+(.*)$'))
 async def repeat_message(event):
-    await event.delete() # حذف رسالتك حتى لا تظهر لخويك
+    await event.delete() # حذف أمرك فوراً حتى لا يظهر لخويك
     count = int(event.pattern_match.group(1))
     text = event.pattern_match.group(2)
     
-    if count > 20:
-        count = 20
+    # حد أقصى 1000 مرة
+    if count > 1000:
+        count = 1000
 
+    STOP_SPAM["status"] = False
+
+    # إرسال الرسائل بسرعة فائقة بدون انتظار (بدون asyncio.sleep)
     for _ in range(count):
-        await client.send_message(event.chat_id, text)
+        if STOP_SPAM["status"]:
+            break
+        try:
+            await client.send_message(event.chat_id, text)
+        except Exception:
+            break
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/ايقاف_التكرار$'))
+async def stop_repeat(event):
+    await event.delete()
+    STOP_SPAM["status"] = True
 
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/قصف$'))
@@ -142,11 +160,12 @@ async def spam_joke(event):
 async def show_commands(event):
     text = (
         "🔥 **قائمة الأوامر الاحترافية الخارقة (90 أمراً كاملاً)** 🔥\n\n"
-        "🤖 **سادساً: نظام الرد التلقائي والتكرار الخاص:**\n"
+        "🤖 **سادساً: نظام الرد التلقائي والتكرار (السريع حتى 1000):**\n"
         "• `/اضافة_رد_تلقائي [النص]` ⟸ لتحديد نص الرد الثابت.\n"
         "• `/حذف_رد_تلقائي` ⟸ لحذف وإيقاف الرد التلقائي.\n"
         "• `/الرد_التلقائي` ⟸ لعرض النص الحالي المفعل.\n"
-        "• `/تكرار [العدد] [النص]` ⟸ لتكرار الرسائل بالخاص.\n"
+        "• `/تكرار [العدد] [النص]` ⟸ لتكرار الرسائل بسرعة فائقة (بحد أقصى 1000).\n"
+        "• `/ايقاف_التكرار` ⟸ لإيقاف التكرار السريع فوراً.\n"
         "• `/قصف` ⟸ إرسال رسائل مقالب متتالية.\n\n"
         "👤 **أولاً: أدوات الحسابات والمعلومات (15 أمراً)**\n"
         "• `/id` ⟸ جلب معلومات الشخص كاملة (البايو، الصورة، الآيدي) ويحذف أمرك سراً.\n"
@@ -264,6 +283,6 @@ async def coin_cmd(event):
     res = random.choice(["صورة 🦅", "كتابة 📖"])
     await event.edit(f"🪙 **نتيجة رمي العملة:** {res}")
 
-print("🚀 تم تشغيل اليوزر بوت كاملاً وبأعلى كفاءة وجميع الأوامر الـ 90!")
+print("🚀 تم تشغيل اليوزر بوت كاملاً وبأعلى سرعة تكرار ممكنة!")
 client.start()
 client.run_until_disconnected()
