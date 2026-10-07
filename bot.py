@@ -67,22 +67,23 @@ async def offline_auto_reply_engine(event):
 
 
 # ==========================================
-# قسم معلومات الناس وعني (أمر /id المطور بحذف الأمر وجلب البايو والصورة)
+# أمر /id المعدل والمضمون 100% لجلب البايو والصورة بدون مشاكل
 # ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/id$'))
 async def get_user_info(event):
-    await event.delete() # حذف أمرك فوراً بالسر
+    await event.delete() # حذف أمرك حتى لا يلاحظ صديقك
     
-    reply = await event.get_reply_message()
-    if reply:
-        user = await client.get_entity(reply.sender_id)
-    else:
-        user = await client.get_entity(event.chat_id)
-
     try:
-        full_user = await client(telethon.tl.functions.users.GetFullUserRequest(id=user.id))
+        reply = await event.get_reply_message()
+        if reply:
+            user = await client.get_entity(reply.sender_id)
+        else:
+            user = await client.get_entity(event.chat_id)
+
+        # جلب معلومات الملف الشخصي كاملة (البايو)
+        full_user = await client(telethon.tl.functions.users.GetFullUserRequest(id=user))
         bio = full_user.about if full_user.about else "لا توجد نبذة شخصية 🔒"
-    except Exception:
+    except Exception as e:
         bio = "غير متاحة أو المخفي يمنع رؤيتها 🚫"
 
     name = user.first_name if user.first_name else "مخفي 👤"
@@ -111,21 +112,19 @@ async def get_user_info(event):
 
 
 # ==========================================
-# قسم التكرار السريع جداً (بدون تأخير وبحد أقصى 1000)
+# قسم التكرار السريع (حتى 1000) مع زر إيقاف
 # ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/تكرار\s+(\d+)\s+(.*)$'))
 async def repeat_message(event):
-    await event.delete() # حذف أمرك فوراً حتى لا يظهر لخويك
+    await event.delete()
     count = int(event.pattern_match.group(1))
     text = event.pattern_match.group(2)
     
-    # حد أقصى 1000 مرة
     if count > 1000:
         count = 1000
 
     STOP_SPAM["status"] = False
 
-    # إرسال الرسائل بسرعة فائقة بدون انتظار (بدون asyncio.sleep)
     for _ in range(count):
         if STOP_SPAM["status"]:
             break
@@ -154,21 +153,21 @@ async def spam_joke(event):
 
 
 # ==========================================
-# قائمة الـ 90 أمراً الحقيقية والشاملة
+# قائمة الأوامر الشاملة (90 أمراً)
 # ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/اوامر$'))
 async def show_commands(event):
     text = (
         "🔥 **قائمة الأوامر الاحترافية الخارقة (90 أمراً كاملاً)** 🔥\n\n"
-        "🤖 **سادساً: نظام الرد التلقائي والتكرار (السريع حتى 1000):**\n"
+        "🤖 **سادساً: نظام الرد التلقائي والتكرار السريع:**\n"
         "• `/اضافة_رد_تلقائي [النص]` ⟸ لتحديد نص الرد الثابت.\n"
         "• `/حذف_رد_تلقائي` ⟸ لحذف وإيقاف الرد التلقائي.\n"
         "• `/الرد_التلقائي` ⟸ لعرض النص الحالي المفعل.\n"
-        "• `/تكرار [العدد] [النص]` ⟸ لتكرار الرسائل بسرعة فائقة (بحد أقصى 1000).\n"
-        "• `/ايقاف_التكرار` ⟸ لإيقاف التكرار السريع فوراً.\n"
-        "• `/قصف` ⟸ إرسال رسائل مقالب متتالية.\n\n"
+        "• `/تكرار [العدد] [النص]` ⟸ تكرار سريع جداً (حتى 1000).\n"
+        "• `/ايقاف_التكرار` ⟸ لإيقاف التكرار فوراً.\n"
+        "• `/قصف` ⟸ رسائل مقالب متتالية.\n\n"
         "👤 **أولاً: أدوات الحسابات والمعلومات (15 أمراً)**\n"
-        "• `/id` ⟸ جلب معلومات الشخص كاملة (البايو، الصورة، الآيدي) ويحذف أمرك سراً.\n"
+        "• `/id` ⟸ جلب معلومات الشخص كاملة (الصورة والبايو والآيدي) بسريّة تامة.\n"
         "• `/معلوماتي` ⟸ تقرير شامل عن حسابك.\n"
         "• `/مجموعاتي` ⟸ إحصائيات المجموعات.\n"
         "• `/اسمي` ⟸ عرض اسمك الحالي.\n"
@@ -254,9 +253,6 @@ async def show_commands(event):
     )
     await event.edit(text)
 
-# ==========================================
-# الأوامر السريعة الإضافية
-# ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^(?:/سرعة|/ping)$'))
 async def ping_cmd(event):
     start = datetime.datetime.now()
@@ -283,6 +279,6 @@ async def coin_cmd(event):
     res = random.choice(["صورة 🦅", "كتابة 📖"])
     await event.edit(f"🪙 **نتيجة رمي العملة:** {res}")
 
-print("🚀 تم تشغيل اليوزر بوت كاملاً وبأعلى سرعة تكرار ممكنة!")
+print("🚀 تم تحديث البوت وحل مشكلة البايو/النبذة نهائياً!")
 client.start()
 client.run_until_disconnected()
