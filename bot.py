@@ -10,7 +10,6 @@ import random
 import asyncio
 import math
 from telethon import TelegramClient, events, Button
-from telethon.sessions import StringSession
 import telethon.tl.functions.users
 import telethon.tl.types
 import telethon.tl.functions.channels
@@ -21,14 +20,8 @@ API_ID = 29652742
 API_HASH = "9ebdbaf1a6184aae6d6d096a9edeaffd"
 MY_ACCOUNT_ID = 8808657227
 
-# قراءة جلسة تيليجرام من متغيرات البيئة لضمان عدم طلب تسجيل الدخول مجدداً على السيرفر
-SESSION_STRING = os.getenv("SESSION_STRING", "")
-
-if SESSION_STRING:
-    client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-else:
-    # استخدام ملف جلسة محلي في حال التشغيل المحلي
-    client = TelegramClient('mega_userbot_session_v3', API_ID, API_HASH)
+# استخدام ملف الجلسة المحلي الموجود في المستودع مباشرة لتجنب مشاكل المتغيرات
+client = TelegramClient('my_userbot_v1', API_ID, API_HASH)
 
 # --- الهياكل ومتغيرات الحالة العامة ---
 CUSTOM_AUTO_REPLY = {"text": None}
