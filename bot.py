@@ -14,7 +14,7 @@ MY_ACCOUNT_ID = 8808657227
 # تشغيل اليوزر بوت باستخدام ملف الجلسة
 client = TelegramClient('my_userbot_v1', API_ID, API_HASH)
 
-# تم إزالة أي رد افتراضي نهائياً (يبدأ فارغاً)
+# متغير الرد التلقائي (فارغ تماماً وليس فيه أي كلمة مسبقة)
 CUSTOM_AUTO_REPLY = {"text": None}
 
 # متغير للتحكم بإيقاف التكرار الجاري
@@ -43,7 +43,7 @@ async def show_custom_reply(event):
         await event.edit("📭 لا يوجد أي رد تلقائي مفعل حالياً.")
 
 # ==========================================
-# محرك الرد التلقائي (يعمل عند الأوفلاين فقط إذا أضفت رداً جديداً)
+# محرك الرد التلقائي (يعمل عند الأوفلاين فقط إذا أضفت رداً)
 # ==========================================
 @client.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
 async def offline_auto_reply_engine(event):
@@ -152,6 +152,46 @@ async def spam_joke(event):
 
 
 # ==========================================
+# أوامر النصوص الفعالة (الزخرفة والترجمة)
+# ==========================================
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/زخرفة(?:\s+(.*))?$'))
+async def decorate_text_cmd(event):
+    await event.delete()
+    text = event.pattern_match.group(1)
+    
+    if not text:
+        reply = await event.get_reply_message()
+        if reply and reply.text:
+            text = reply.text
+        else:
+            await client.send_message(event.chat_id, "⚠️ **اكتب النص بعد الأمر أو رد على رسالة لزخرفتها!**\nمثال: `/زخرفة السلام عليكم`")
+            return
+
+    # زخرفة فخمة وأنيقة للنص
+    decorated = f"✨ ⦋ {text} ⦃ 🌟 ⦄ ⦊ ✨\n💫 `{text}` 💫"
+    await client.send_message(event.chat_id, decorated)
+
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/ترجمة$'))
+async def translate_text_cmd(event):
+    await event.delete()
+    reply = await event.get_reply_message()
+    if not reply or not reply.text:
+        await client.send_message(event.chat_id, "⚠️ **يرجى الرد على الرسالة التي تريد ترجمتها بكلمة `/ترجمة`**")
+        return
+    
+    try:
+        # استخدام مكتبة جوجل للترجمة المدمجة أو طلب بسيط
+        from googletrans import Translator
+        translator = Translator()
+        translation = translator.translate(reply.text, dest='ar')
+        await client.send_message(event.chat_id, f"🌐 **الترجمة العربية:**\n`{translation.text}`")
+    except Exception as e:
+        # حل بديل مباشر بدون مكتبة خارجية معقدة إذا لم تكن مثبتة
+        await client.send_message(event.chat_id, f"🌐 **النص المراد ترجمته:**\n`{reply.text}`\n*(تأكد من تثبيت مكتبة googletrans عبر الأمر: pip install googletrans==4.0.0-rc1)*")
+
+
+# ==========================================
 # قائمة الأوامر الشاملة (90 أمراً)
 # ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/اوامر$'))
@@ -165,6 +205,9 @@ async def show_commands(event):
         "• `/تكرار [العدد] [النص]` ⟸ تكرار سريع جداً (حتى 1000).\n"
         "• `/ايقاف_التكرار` ⟸ لإيقاف التكرار فوراً.\n"
         "• `/قصف` ⟸ رسائل مقالب متتالية.\n\n"
+        "💬 **قسم النصوص الفعالة:**\n"
+        "• `/زخرفة [النص]` أو بالرد ⟸ زخرفة النصوص فوراً.\n"
+        "• `/ترجمة` بالرد على رسالة ⟸ ترجمة فورية للعربية.\n\n"
         "👤 **أولاً: أدوات الحسابات والمعلومات (15 أمراً)**\n"
         "• `/id` ⟸ جلب معلومات الشخص كاملة (الصورة والبايو والآيدي) بسريّة تامة.\n"
         "• `/معلوماتي` ⟸ تقرير شامل عن حسابك.\n"
@@ -175,7 +218,7 @@ async def show_commands(event):
         "• `/صورة` ⟸ جلب صورتك الشخصية.\n"
         "• `/حسابي` ⟸ فحص الاتصال والحماية.\n"
         "• `/مستخدم` ⟸ بحث عن حساب.\n"
-        "• `/الآيدي` ⟸ جلب آيدي بالرد.\n"
+        "• `/الالآيدي` ⟸ جلب آيدي بالرد.\n"
         "• `/اشتراكاتي` ⟸ عرض القنوات المشترك بها.\n"
         "• `/مكالماتي` ⟸ حالة المكالمات.\n"
         "• `/حالة_الظهور` ⟸ وقت آخر ظهور.\n"
@@ -198,23 +241,6 @@ async def show_commands(event):
         "• `/التخزين` ⟸ فحص الذاكرة المؤقتة.\n"
         "• `/اتصال` ⟸ اختبار البورتات.\n"
         "• `/مراقبة` ⟸ تتبع نشاط السيرفر.\n\n"
-
-        "💬 **ثالثاً: النصوص والتنسيق الفخم (15 أمراً)**\n"
-        "• `/ترجمة` ⟸ ترجمة فورية للعربية.\n"
-        "• `/زخرفة` ⟸ زخرفة النصوص.\n"
-        "• `/تكرار` ⟸ تكرار الرسائل.\n"
-        "• `/عكس` ⟸ عكس حروف النص.\n"
-        "• `/كبير` ⟸ تكبير الخطوط.\n"
-        "• `/مقبوض` ⟸ تشفير سري.\n"
-        "• `/تصفية` ⟸ تنظيف الرموز.\n"
-        "• `/حروف` ⟸ عد الحروف والكلمات.\n"
-        "• `/شعر` ⟸ تنسيق الأبيات.\n"
-        "• `/دمج` ⟸ دمج النصوص.\n"
-        "• `/صياغة` ⟸ تدقيق النصوص.\n"
-        "• `/تنوين` ⟸ إضافة تشكيل.\n"
-        "• `/إلغاء_التشكيل` ⟸ إزالة الحركات.\n"
-        "• `/استبدال [كلمة] [بديل]` ⟸ استبدال نص.\n"
-        "• `/اختصار_نص` ⟸ تلخيص النصوص.\n\n"
 
         "🎮 **رابعاً: التسلية والألعاب والمرح (15 أمراً)**\n"
         "• `/حكمة` ⟸ إرسال حكمة عميقة.\n"
@@ -278,6 +304,6 @@ async def coin_cmd(event):
     res = random.choice(["صورة 🦅", "كتابة 📖"])
     await event.edit(f"🪙 **نتيجة رمي العملة:** {res}")
 
-print("🚀 تم تشغيل اليوزر بوت ونظيف تماماً من أي رد افتراضي!")
+print("🚀 تم تشغيل اليوزر بوت وتفعيل كافة الأوامر والزخرفة والترجمة بنجاح تام!")
 client.start()
 client.run_until_disconnected()
