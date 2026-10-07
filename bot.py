@@ -51,11 +51,9 @@ async def offline_auto_reply_engine(event):
         me = await client.get_me()
         is_offline = False
         
-        # فحص ما إذا كنت أوفلاين (خارج تلغرام)
         if isinstance(me.status, (telethon.tl.types.UserStatusOffline, telethon.tl.types.UserStatusRecently)):
             is_offline = True
 
-        # إذا كنت أوفلاين، سيرد على الشخص مهما أرسل بالنص الثابت
         if is_offline:
             incoming_text = event.raw_text.strip()
             if incoming_text:
@@ -65,18 +63,93 @@ async def offline_auto_reply_engine(event):
 
 
 # ==========================================
+# قسم معلومات الناس وعني (أمر /id المطور بحذف الأمر وجلب البايو والصورة)
+# ==========================================
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/id$'))
+async def get_user_info(event):
+    await event.delete() # حذف أمرك فوراً بالسر
+    
+    reply = await event.get_reply_message()
+    if reply:
+        user = await client.get_entity(reply.sender_id)
+    else:
+        user = await client.get_entity(event.chat_id)
+
+    try:
+        full_user = await client(telethon.tl.functions.users.GetFullUserRequest(id=user.id))
+        bio = full_user.about if full_user.about else "لا توجد نبذة شخصية 🔒"
+    except Exception:
+        bio = "غير متاحة أو المخفي يمنع رؤيتها 🚫"
+
+    name = user.first_name if user.first_name else "مخفي 👤"
+    username = f"@{user.username}" if user.username else "لا يوجد معرف 📭"
+    user_id = user.id
+
+    info_text = (
+        "╭━━━ 🎴 **معلومات الشخص** ━━━╮\n"
+        f"👤 **الاسم:** {name}\n"
+        f"🆔 **الآيدي:** `{user_id}`\n"
+        f"🔗 **المعرف:** {username}\n"
+        f"📝 **البايو (النبذة):** {bio}\n"
+        "╰━━━━━━━━━━━━━━━━━━━━╯"
+    )
+
+    try:
+        if user.photo:
+            photo_path = await client.download_profile_photo(user)
+            await client.send_file(event.chat_id, photo_path, caption=info_text)
+            os.remove(photo_path)
+            return
+    except Exception:
+        pass
+        
+    await client.send_message(event.chat_id, info_text)
+
+
+# ==========================================
+# قسم التكرار والخاص والمقالب
+# ==========================================
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/تكرار\s+(\d+)\s+(.*)$'))
+async def repeat_message(event):
+    await event.delete() # حذف رسالتك حتى لا تظهر لخويك
+    count = int(event.pattern_match.group(1))
+    text = event.pattern_match.group(2)
+    
+    if count > 20:
+        count = 20
+
+    for _ in range(count):
+        await client.send_message(event.chat_id, text)
+
+
+@client.on(events.NewMessage(outgoing=True, pattern=r'^/قصف$'))
+async def spam_joke(event):
+    await event.delete()
+    jokes = [
+        "يا عيال خويي ذا غريب عجيب 😂",
+        "اقول تبي صامولي ولا فطيرة؟ 🍔",
+        "ياخي إنت منور الخاص عندي 🔥",
+        "جالس أجرب البوت الجديد عليك لا تدقق 😂"
+    ]
+    for j in jokes:
+        await client.send_message(event.chat_id, j)
+
+
+# ==========================================
 # قائمة الـ 90 أمراً الحقيقية والشاملة
 # ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/اوامر$'))
 async def show_commands(event):
     text = (
-        "🔥 **قائمة الأوامر الاحترافية الخارقة (90 أمراً حقيقياً)** 🔥\n\n"
-        "🤖 **سادساً: نظام الرد التلقائي الجديد:**\n"
-        "• `/اضافة_رد_تلقائي [النص]` ⟸ لتحديد نص الرد الثابت (مثال: `/اضافة_رد_تلقائي اشوي اجيك`).\n"
+        "🔥 **قائمة الأوامر الاحترافية الخارقة (90 أمراً كاملاً)** 🔥\n\n"
+        "🤖 **سادساً: نظام الرد التلقائي والتكرار الخاص:**\n"
+        "• `/اضافة_رد_تلقائي [النص]` ⟸ لتحديد نص الرد الثابت.\n"
         "• `/حذف_رد_تلقائي` ⟸ لحذف وإيقاف الرد التلقائي.\n"
-        "• `/الرد_التلقائي` ⟸ لعرض النص الحالي المفعل.\n\n"
+        "• `/الرد_التلقائي` ⟸ لعرض النص الحالي المفعل.\n"
+        "• `/تكرار [العدد] [النص]` ⟸ لتكرار الرسائل بالخاص.\n"
+        "• `/قصف` ⟸ إرسال رسائل مقالب متتالية.\n\n"
         "👤 **أولاً: أدوات الحسابات والمعلومات (15 أمراً)**\n"
-        "• `/id` ⟸ جلب معلومات الشخص كاملة (الصورة، النبذة، الآيدي، اليوزر).\n"
+        "• `/id` ⟸ جلب معلومات الشخص كاملة (البايو، الصورة، الآيدي) ويحذف أمرك سراً.\n"
         "• `/معلوماتي` ⟸ تقرير شامل عن حسابك.\n"
         "• `/مجموعاتي` ⟸ إحصائيات المجموعات.\n"
         "• `/اسمي` ⟸ عرض اسمك الحالي.\n"
@@ -112,7 +185,7 @@ async def show_commands(event):
         "💬 **ثالثاً: النصوص والتنسيق الفخم (15 أمراً)**\n"
         "• `/ترجمة` ⟸ ترجمة فورية للعربية.\n"
         "• `/زخرفة` ⟸ زخرفة النصوص.\n"
-        "• `/تكرار [عدد] [نص]` ⟸ تكرار الرسائل.\n"
+        "• `/تكرار` ⟸ تكرار الرسائل.\n"
         "• `/عكس` ⟸ عكس حروف النص.\n"
         "• `/كبير` ⟸ تكبير الخطوط.\n"
         "• `/مقبوض` ⟸ تشفير سري.\n"
@@ -163,56 +236,20 @@ async def show_commands(event):
     await event.edit(text)
 
 # ==========================================
-# الوظائف والأوامر الأساسية (ID, Ping, Time, etc.)
+# الأوامر السريعة الإضافية
 # ==========================================
-@client.on(events.NewMessage(outgoing=True, pattern=r'^/id$'))
-async def get_user_info(event):
-    reply = await event.get_reply_message()
-    if reply:
-        user = await client.get_entity(reply.sender_id)
-    else:
-        user = await client.get_entity(event.chat_id)
-
-    try:
-        full_user = await client(telethon.tl.functions.users.GetFullUserRequest(id=user.id))
-        bio = full_user.about if full_user.about else "لا توجد نبذة شخصية 🔒"
-    except Exception:
-        bio = "غير قادر على جلب النبذة 🚫"
-
-    name = user.first_name if user.first_name else "مخفي 👤"
-    username = f"@{user.username}" if user.username else "لا يوجد يوزر 📭"
-    user_id = user.id
-
-    info_text = (
-        f"👤 **الاسم:** {name}\n"
-        f"🆔 **الآيدي:** `{user_id}`\n"
-        f"🔗 **المعرف:** {username}\n"
-        f"📝 **النبذة:** {bio}"
-    )
-    await event.edit(info_text)
-
 @client.on(events.NewMessage(outgoing=True, pattern=r'^(?:/سرعة|/ping)$'))
 async def ping_cmd(event):
     start = datetime.datetime.now()
-    event = await event.edit("⚡ **جاري قياس السرعة...**")
+    event = await event.edit("⚡ **جاري القياس...**")
     end = datetime.datetime.now()
     ms = (end - start).microseconds / 1000
-    await event.edit(f"⚡ **سرعة الاستجابة:** `{ms} ms` 🚀")
+    await event.edit(f"⚡ **السرعة:** `{ms} ms` 🚀")
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/وقت$'))
 async def time_cmd(event):
     now = datetime.datetime.now().strftime("%Y-%m-%d | %I:%M:%S %p")
     await event.edit(f"🕒 **التوقيت الحالي:**\n`{now}` ✨")
-
-@client.on(events.NewMessage(outgoing=True, pattern=r'^/معلوماتي$'))
-async def my_info(event):
-    me = await client.get_me()
-    await event.edit(
-        f"👑 **الملف الشخصي:**\n\n"
-        f"• **الاسم:** {me.first_name}\n"
-        f"• **الآيدي:** `{me.id}`\n"
-        f"• **اليوزر:** @{me.username if me.username else 'مخفي'}"
-    )
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/حكمة$'))
 async def wisdom_cmd(event):
@@ -227,6 +264,6 @@ async def coin_cmd(event):
     res = random.choice(["صورة 🦅", "كتابة 📖"])
     await event.edit(f"🪙 **نتيجة رمي العملة:** {res}")
 
-print("🚀 تم تشغيل اليوزر بوت كاملاً وبأعلى كفاءة!")
+print("🚀 تم تشغيل اليوزر بوت كاملاً وبأعلى كفاءة وجميع الأوامر الـ 90!")
 client.start()
 client.run_until_disconnected()
