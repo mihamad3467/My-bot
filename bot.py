@@ -14,14 +14,14 @@ MY_ACCOUNT_ID = 8808657227
 # تشغيل اليوزر بوت باستخدام ملف الجلسة
 client = TelegramClient('my_userbot_v1', API_ID, API_HASH)
 
-# متغير لحفظ نص الرد التلقائي العام عند الأوفلاين
-CUSTOM_AUTO_REPLY = {"text": "اشوي اجيك"}
+# تم إزالة أي رد افتراضي نهائياً (يبدأ فارغاً)
+CUSTOM_AUTO_REPLY = {"text": None}
 
 # متغير للتحكم بإيقاف التكرار الجاري
 STOP_SPAM = {"status": False}
 
 # ==========================================
-# أوامر التحكم بالرد التلقائي العام (إضافة / حذف / عرض)
+# أوامر التحكم بالرد التلقائي (إضافة / حذف / عرض)
 # ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/اضافة_رد_تلقائي (.*)$'))
 async def set_custom_reply(event):
@@ -43,7 +43,7 @@ async def show_custom_reply(event):
         await event.edit("📭 لا يوجد أي رد تلقائي مفعل حالياً.")
 
 # ==========================================
-# محرك الرد التلقائي (يعمل عند الأوفلاين لأي رسالة وبأي كلمة)
+# محرك الرد التلقائي (يعمل عند الأوفلاين فقط إذا أضفت رداً جديداً)
 # ==========================================
 @client.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
 async def offline_auto_reply_engine(event):
@@ -67,11 +67,11 @@ async def offline_auto_reply_engine(event):
 
 
 # ==========================================
-# أمر /id المعدل والمضمون 100% لجلب البايو والصورة بدون مشاكل
+# أمر /id لجلب البايو والصورة وحذف رسالتك سراً
 # ==========================================
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/id$'))
 async def get_user_info(event):
-    await event.delete() # حذف أمرك حتى لا يلاحظ صديقك
+    await event.delete()
     
     try:
         reply = await event.get_reply_message()
@@ -80,10 +80,9 @@ async def get_user_info(event):
         else:
             user = await client.get_entity(event.chat_id)
 
-        # جلب معلومات الملف الشخصي كاملة (البايو)
         full_user = await client(telethon.tl.functions.users.GetFullUserRequest(id=user))
         bio = full_user.about if full_user.about else "لا توجد نبذة شخصية 🔒"
-    except Exception as e:
+    except Exception:
         bio = "غير متاحة أو المخفي يمنع رؤيتها 🚫"
 
     name = user.first_name if user.first_name else "مخفي 👤"
@@ -279,6 +278,6 @@ async def coin_cmd(event):
     res = random.choice(["صورة 🦅", "كتابة 📖"])
     await event.edit(f"🪙 **نتيجة رمي العملة:** {res}")
 
-print("🚀 تم تحديث البوت وحل مشكلة البايو/النبذة نهائياً!")
+print("🚀 تم تشغيل اليوزر بوت ونظيف تماماً من أي رد افتراضي!")
 client.start()
 client.run_until_disconnected()
