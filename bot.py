@@ -1,6 +1,5 @@
 # ==============================================================================
-# 🌟 المشروع الأسطوري: اليوزر بوت الفخم والضخم (Mega Userbot v3.0)
-# 🛠️ الهندسة والتطوير: مخصص خصيصاً لتليجرام بصلاحيات كاملة وأزرار تفاعلية
+# 🌟 المشروع الأسطوري: اليوزر بوت الفخم والضخم (Mega Userbot v3.0 - Cloud Ready)
 # ==============================================================================
 
 import os
@@ -11,6 +10,7 @@ import random
 import asyncio
 import math
 from telethon import TelegramClient, events, Button
+from telethon.sessions import StringSession
 import telethon.tl.functions.users
 import telethon.tl.types
 import telethon.tl.functions.channels
@@ -21,8 +21,14 @@ API_ID = 29652742
 API_HASH = "9ebdbaf1a6184aae6d6d096a9edeaffd"
 MY_ACCOUNT_ID = 8808657227
 
-# تشغيل العميل (Userbot Client)
-client = TelegramClient('mega_userbot_session_v3', API_ID, API_HASH)
+# قراءة جلسة تيليجرام من متغيرات البيئة لضمان عدم طلب تسجيل الدخول مجدداً على السيرفر
+SESSION_STRING = os.getenv("SESSION_STRING", "")
+
+if SESSION_STRING:
+    client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+else:
+    # استخدام ملف جلسة محلي في حال التشغيل المحلي
+    client = TelegramClient('mega_userbot_session_v3', API_ID, API_HASH)
 
 # --- الهياكل ومتغيرات الحالة العامة ---
 CUSTOM_AUTO_REPLY = {"text": None}
@@ -47,7 +53,7 @@ ENGLISH_DECORATIONS = {
 
 
 # ==============================================================================
-# القسم الأول: نظام الرد التلقائي والأوفلاين الذكي (عشر وظائف فرعية)
+# القسم الأول: نظام الرد التلقائي والأوفلاين الذكي
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/اضافة_رد_تلقائي (.*)$'))
@@ -122,7 +128,7 @@ async def decorate_callback(event):
     try:
         data = event.data.decode('utf-8')
         parts = data.split('_', 3)
-        lang_type = parts[1] # en or ar
+        lang_type = parts[1]
         dec_idx = parts[2]
         text = parts[3]
 
@@ -327,7 +333,6 @@ async def calculator_cmd(event):
     await event.delete()
     expression = event.pattern_match.group(1)
     try:
-        # حساب أمن وبسيط للعمليات الرياضية
         allowed_chars = "0123456789+-*/(). "
         if all(c in allowed_chars for c in expression):
             result = eval(expression)
@@ -367,7 +372,7 @@ async def luck_cmd(event):
 
 
 # ==============================================================================
-# القسم السابع: الإدارة والتحكم في المجموعات (طرد، كتم، تثبيت)
+# القسم السابع: الإدارة والتحكم في المجموعات
 # ==============================================================================
 
 @client.on(events.NewMessage(outgoing=True, pattern=r'^/تثبيت$'))
