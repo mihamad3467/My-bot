@@ -218,7 +218,7 @@ async def translate_callback(event):
         
         await event.edit(f"🌐 **النتيجة المترجمة ({lang.upper()}):**\n\n`{translated}`")
     except Exception as e:
-        await event.answer(f"تأكد من تثبيت مكتبة deep-translator:\nخطأ: {e}", alert=True)
+        await event.answer(f"حدث خطأ: {e}", alert=True)
 
 
 # ==============================================================================
