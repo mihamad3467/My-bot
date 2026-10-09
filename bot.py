@@ -8,8 +8,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 import google.generativeai as genai
 
-# --- إعدادات التوكن ومفتاح الذكاء الاصطناعي ---
-TELEGRAM_BOT_TOKEN = "8797714829:AAFAGO7w2Y5Mgh_mPY4NWPtL8JlkEl_Fajc"
+# --- إعدادات التوكن الجديد ومفتاح الذكاء الاصطناعي ---
+TELEGRAM_BOT_TOKEN = "8806330487:AAHowuDwXrjOgOYGjCcmyHfBHD4MsC-j3uc"
 GEMINI_API_KEY = "AQ.Ab8RN6LDVdzfTMT89oU14HL7gnUayvWEtoYI3uhk02poijh2jw"
 
 # تهيئة الذكاء الاصطناعي Gemini
@@ -48,12 +48,11 @@ async def handle_all_messages(message: types.Message):
         logging.error(f"AI Error: {e}")
         await message.answer("❌ حدث خطأ أثناء معالجة رسالتك بالذكاء الاصطناعي.")
 
-# --- تشغيل البوت مع حذف الويب هوك المعلق أولاً ---
+# --- تشغيل البوت مع حذف الويب هوك القديم ---
 async def main():
     print("=" * 60)
-    print("🚀 [TELEGRAM AI BOT] جاري مسح الويب هوك القديم وتشغيل البوت...")
+    print("🚀 [TELEGRAM AI BOT] جاري تشغيل البوت بالتوكن الجديد...")
     print("=" * 60)
-    # هذا السطر هو الحل الجذري لمشكلتك لحذف التعليق
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
