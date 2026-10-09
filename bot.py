@@ -1,5 +1,5 @@
 # ==============================================================================
-# 🌟 المشروع الأسطوري: اليوزر بوت الفخم والضخم (Mega Userbot Pro v4.2 - Multi-User & Cloner)
+# 🌟 المشروع الأسطوري: اليوزر بوت الفخم والضخم (Mega Userbot Pro v4.3 - Cloner Fixed)
 # ==============================================================================
 
 import os
@@ -34,7 +34,7 @@ AFK_MODE = {"status": False, "reason": "غير متواجد حالياً 🔒"}
 BOT_START_TIME = datetime.datetime.now()
 
 # متغيرات لحفظ النسخة الأصلية قبل عملية /نسخ (لاستعادتها عند /الغاء_نسخ)
-ORIGINAL_PROFILE = {"first_name": None, "about": None, "photo": None}
+ORIGINAL_PROFILE = {"first_name": None, "about": None}
 
 def is_allowed(event):
     return event.sender_id in ALLOWED_USERS
@@ -84,11 +84,11 @@ async def set_afk_mode(event):
 async def disable_afk_mode(event):
     await event.delete()
     AFK_MODE["status"] = False
-    await client.send_message(event.chat_id, "⚡ **تم إلغاء وضع AFK وعودتك للنشاط.**")
+    await client.send_message(event.chat_id, f"⚡ **تم إلغاء وضع AFK وعودتك للنشاط.**")
 
 
 # ==============================================================================
-# القسم الثاني: نظام نسخ الحسابات الخرافي (/نسخ و /الغاء_نسخ)
+# القسم الثاني: نظام نسخ الحسابات الخرافي المؤكد (/نسخ و /الغاء_نسخ)
 # ==============================================================================
 
 @client.on(events.NewMessage(func=lambda e: is_allowed(e) and e.raw_text == '/نسخ'))
@@ -103,22 +103,34 @@ async def clone_user_profile(event):
         target_user = await client.get_entity(reply.sender_id)
         full_target = await client(telethon.tl.functions.users.GetFullUserRequest(id=target_user))
         
+        # استخراج البايو بشكل سليم ومضبوط حسب تحديثات تليجرام الأخيرة
+        target_bio = ""
+        if hasattr(full_target, 'full_user') and hasattr(full_target.full_user, 'about'):
+            target_bio = full_target.full_user.about or ""
+        elif hasattr(full_target, 'about'):
+            target_bio = full_target.about or ""
+
         # حفظ بياناتنا الأصلية أولاً إذا لم تكن محفوظة
         me = await client.get_me()
         if not ORIGINAL_PROFILE["first_name"]:
             ORIGINAL_PROFILE["first_name"] = me.first_name
-            ORIGINAL_PROFILE["about"] = full_target.about if hasattr(full_target, 'about') else ""
+            # جلب بايو حسابنا الحالي لحفظه
+            try:
+                my_full = await client(telethon.tl.functions.users.GetFullUserRequest(id='me'))
+                ORIGINAL_PROFILE["about"] = my_full.full_user.about if hasattr(my_full, 'full_user') else ""
+            except:
+                ORIGINAL_PROFILE["about"] = ""
         
         # 1. نسخ الاسم
         new_name = target_user.first_name if target_user.first_name else "مستخدم"
         await client(telethon.tl.functions.account.UpdateProfileRequest(first_name=new_name))
         
         # 2. نسخ البايو (النبذة)
-        target_bio = full_target.about if full_target.about else "لا توجد نبذة"
-        await client(telethon.tl.functions.account.UpdateProfileRequest(about=target_bio))
+        if target_bio:
+            await client(telethon.tl.functions.account.UpdateProfileRequest(about=target_bio))
         
         # 3. نسخ الصورة الشخصية إن وجدت
-        photo_msg = "ولكن لمש تعثر على صورة شخصية."
+        photo_msg = "ولكن لم يتم العثور على صورة شخصية."
         if target_user.photo:
             path = await client.download_profile_photo(target_user)
             file = await client.upload_file(path)
@@ -128,7 +140,7 @@ async def clone_user_profile(event):
 
         await client.send_message(
             event.chat_id, 
-            f"🔥 **تم نسخ حساب الضحية بنجاح!**\n\n👤 **الاسم:** {new_name}\n📝 **البايو:** `{target_bio}`\n{photo_msg}\n\nلإعادة حسابك كما كان، اكتب: `/الغاء_نسخ`"
+            f"🔥 **تم نسخ حساب الشخص بنجاح!**\n\n👤 **الاسم:** {new_name}\n📝 **البايو:** `{target_bio if target_bio else 'لا توجد نبذة'}`\n{photo_msg}\n\nلإعادة حسابك كما كان، اكتب: `/الغاء_نسخ`"
         )
     except Exception as e:
         await client.send_message(event.chat_id, f"❌ حدث خطأ أثناء النسخ: {e}")
@@ -146,7 +158,7 @@ async def restore_user_profile(event):
             about=ORIGINAL_PROFILE["about"] if ORIGINAL_PROFILE["about"] else ""
         ))
         
-        # حذف الصور الشخصية المضافة للرجوع للصورة الأساسية أو إزالتها
+        # حذف الصور الشخصية المضافة للرجوع للصورة الأساسية
         photos = await client.get_profile_photos('me')
         if photos:
             await client(telethon.tl.functions.photos.DeletePhotosRequest(id=[photos[0]]))
@@ -157,7 +169,7 @@ async def restore_user_profile(event):
 
 
 # ==============================================================================
-# القسم الثالث: الزخرفة، الترجمة الفورية (إنجليزية)، والأوامر التفاعلية بالرد
+# القسم الثالث: الزخرفة والترجمة الفورية (إنجليزية)
 # ==============================================================================
 
 @client.on(events.NewMessage(func=lambda e: is_allowed(e) and e.raw_text.startswith('/زخرفة')))
@@ -177,7 +189,7 @@ async def decorate_cmd(event):
         f"🌟 **إنجليزي 1:** `{ENGLISH_DECORATIONS['1'](text)}`\n"
         f"💎 **إنجليزي 2:** `{ENGLISH_DECORATIONS['2'](text)}`\n"
         f"🔥 **عربي 1:** `{ARABIC_DECORATIONS['1'](text)}`\n"
-        f"⭐ **عربي 2:** `{ARABIC_DECORations_safe := ARABIC_DECORATIONS['4'](text)}`"
+        f"⭐ **عربي 2:** `{ARABIC_DECORATIONS['4'](text)}`"
     )
     await client.send_message(event.chat_id, dec_res)
 
@@ -200,7 +212,7 @@ async def translate_to_english_cmd(event):
 
 
 # ==============================================================================
-# القسم الرابع: أدوات الحسابات والمعلومات الفخمة (/id المحدث والمحسن)
+# القسم الرابع: أدوات الحسابات والمعلومات الفخمة (/id المضبوط)
 # ==============================================================================
 
 @client.on(events.NewMessage(func=lambda e: is_allowed(e) and (e.raw_text == '/id' or e.raw_text.startswith('/id'))))
@@ -213,12 +225,16 @@ async def get_user_info_fixed(event):
         else:
             user = await client.get_entity(event.chat_id)
 
-        # جلب البايو والبيانات الكاملة عبر طلب الـ FullUser
+        # جلب البايو والبيانات الكاملة بشكل آمن ومتوافق تماماً
+        bio = "لا توجد نبذة شخصية (Bio) 🔒"
         try:
             full_user = await client(telethon.tl.functions.users.GetFullUserRequest(id=user))
-            bio = full_user.about if full_user.about else "لا توجد نبذة شخصية (Bio) 🔒"
+            if hasattr(full_user, 'full_user') and hasattr(full_user.full_user, 'about'):
+                bio = full_user.full_user.about or bio
+            elif hasattr(full_user, 'about'):
+                bio = full_user.about or bio
         except Exception:
-            bio = "غير متاحة أو مخفية بالخصوصية 🚫"
+            pass
 
         name = user.first_name if user.first_name else "مخفي 👤"
         username = f"@{user.username}" if user.username else "لا يوجد معرف 📭"
@@ -297,7 +313,7 @@ async def time_cmd(event):
 async def show_commands(event):
     await event.delete()
     text = (
-        "🔥 **قائمة الأوامر المحدثة والأسطورية v4.2** 🔥\n\n"
+        "🔥 **قائمة الأوامر المحدثة والأسطورية v4.3** 🔥\n\n"
         "🎭 **1. قسم انتحال ونسخ الحسابات:**\n"
         "• `/نسخ` (بالرد على رسالة شخص) ⟸ لنسخ اسمه وبايوه وصورته بحسابك.\n"
         "• `/الغاء_نسخ` ⟸ لاستعادة اسمك وصورتك وبايوك الأصلي.\n\n"
@@ -320,7 +336,7 @@ async def show_commands(event):
 
 # --- رسالة التشغيل ---
 print("=" * 70)
-print("🚀 [MEGA USERBOT v4.2 Cloner & Multi-User] تم تحميل الكود بنجاح تام!")
+print("🚀 [MEGA USERBOT v4.3 Cloner Fixed] تم تحميل الكود بنجاح تام!")
 print("=" * 70)
 
 client.start()
