@@ -26,38 +26,35 @@ logging.basicConfig(level=logging.INFO)
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     await message.answer(
-        " أهلاً بك! أنا بوت الذكاء الاصطناعي الخاص بك.\n"
+        "أهلاً بك! أنا بوت الذكاء الاصطناعي الخاص بك.\n"
         "يمكنك مراسلتي هنا في الخاص وسأقوم بالرد عليك وإجابتك على أي شيء فوراً! 🚀"
     )
 
 # --- استقبال رسائل الخاص والرد عبر الذكاء الاصطناعي ---
 @dp.message()
 async def handle_all_messages(message: types.Message):
-    # نتأكد أن الرسالة نصية وليست فارغة
     if not message.text:
         return
     
     try:
-        # إرسال مؤشر الكتابة لكي يظهر للمستخدم أن البوت يكتب رد
         await bot.send_chat_action(chat_id=message.chat.id, action="typing")
         
-        # صياغة الطلب للذكاء الاصطناعي
         prompt = f"أنت مساعد ذكي ومحبوب تتحدث باللغة العربية بأسلوب طبيعي ومفيد جداً. أجب على رسالة المستخدم التالية: {message.text}"
         response = ai_model.generate_content(prompt)
         
         reply_text = response.text if response and response.text else "عذراً، لم أستطع صياغة إجابة، حاول مرة أخرى."
-        
-        # إرسال الرد للمستخدم في الخاص
         await message.answer(reply_text)
     except Exception as e:
         logging.error(f"AI Error: {e}")
         await message.answer("❌ حدث خطأ أثناء معالجة رسالتك بالذكاء الاصطناعي.")
 
-# --- تشغيل البوت ---
+# --- تشغيل البوت مع حذف الويب هوك المعلق أولاً ---
 async def main():
     print("=" * 60)
-    print("🚀 [TELEGRAM AI BOT] البوت الرسمي يعمل الآن بكامل قوة Gemini!")
+    print("🚀 [TELEGRAM AI BOT] جاري مسح الويب هوك القديم وتشغيل البوت...")
     print("=" * 60)
+    # هذا السطر هو الحل الجذري لمشكلتك لحذف التعليق
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
