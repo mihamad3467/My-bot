@@ -1,5 +1,5 @@
 # ==============================================================================
-# 🌟 المشروع الأسطوري: اليوزر بوت الفخم والضخم (Mega Userbot Pro v4.3 - Cloner Fixed)
+# 🌟 المشروع الأسطوري: اليوزر بوت الفخم والضخم (Mega Userbot Pro v4.3 - Smart Auto-Reply)
 # ==============================================================================
 
 import os
@@ -55,7 +55,7 @@ ENGLISH_DECORATIONS = {
 
 
 # ==============================================================================
-# القسم الأول: نظام الرد التلقائي والـ AFK
+# القسم الأول: نظام الرد التلقائي الذكي (يعمل فقط عند الأوفلاين) والـ AFK
 # ==============================================================================
 
 @client.on(events.NewMessage(func=lambda e: is_allowed(e) and e.raw_text.startswith('/اضافة_رد_تلقائي')))
@@ -63,7 +63,7 @@ async def set_custom_reply(event):
     await event.delete()
     new_text = event.raw_text.replace('/اضافة_رد_تلقائي', '').strip()
     CUSTOM_AUTO_REPLY["text"] = new_text
-    await client.send_message(event.chat_id, f"✅ **تم تفعيل الرد التلقائي:**\n`{new_text}`")
+    await client.send_message(event.chat_id, f"✅ **تم تفعيل الرد التلقائي (يعمل عند الأوفلاين فقط):**\n`{new_text}`")
 
 @client.on(events.NewMessage(func=lambda e: is_allowed(e) and e.raw_text == '/حذف_رد_تلقائي'))
 async def delete_custom_reply(event):
@@ -71,11 +71,25 @@ async def delete_custom_reply(event):
     CUSTOM_AUTO_REPLY["text"] = None
     await client.send_message(event.chat_id, "🗑️ **تم مسح الرد التلقائي.**")
 
-# نظام الرد التلقائي عند استلام رسائل خاصة
+# نظام الرد التلقائي الذكي: يتحقق مما إذا كنت أوفلاين أم لا قبل الرد
 @client.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
-async def auto_reply_handler(event):
+async def smart_auto_reply_handler(event):
     if CUSTOM_AUTO_REPLY["text"] and event.sender_id not in ALLOWED_USERS:
-        await event.reply(CUSTOM_AUTO_REPLY["text"])
+        try:
+            # جلب حالة اتصال حسابك الحالي
+            me = await client.get_me()
+            # في تيليجرام، الحساب يعتبر أونلاين إذا كان status يعود كـ UserStatusOnline أو مشابه
+            is_online = isinstance(me.status, telethon.tl.types.UserStatusOnline)
+            
+            # إذا كنت أونلاين، لا تقم بالرد التلقائي نهائياً
+            if is_online:
+                return
+            
+            # إذا لم تكن أونلاين (أوفلاين)، أرسل الرد التلقائي
+            await event.reply(CUSTOM_AUTO_REPLY["text"])
+        except Exception:
+            # احتياطاً في حال فشل جلب الحالة، نعتمد على الرد الطبيعي أو نتجاوز
+            pass
 
 @client.on(events.NewMessage(func=lambda e: is_allowed(e) and e.raw_text.startswith('/afk')))
 async def set_afk_mode(event):
@@ -311,8 +325,8 @@ async def show_commands(event):
     await event.delete()
     text = (
         "🔥 **قائمة الأوامر المحدثة والأسطورية v4.3** 🔥\n\n"
-        "💬 **0. قسم الردود التلقائية:**\n"
-        "• `/اضافة_رد_تلقائي [الرد]` ⟸ لتفعيل الرد التلقائي في الخاص.\n"
+        "💬 **0. قسم الردود التلقائية (الذكية عند الأوفلاين):**\n"
+        "• `/اضافة_رد_تلقائي [الرد]` ⟸ تفعيل الرد التلقائي (يعمل فقط وأنت أوفلاين).\n"
         "• `/حذف_رد_تلقائي` ⟸ لحذف الرد التلقائي.\n\n"
         "🎭 **1. قسم انتحال ونسخ الحسابات:**\n"
         "• `/نسخ` (بالرد على رسالة شخص) ⟸ لنسخ اسمه وبايوه وصورته بحسابك.\n"
@@ -321,7 +335,7 @@ async def show_commands(event):
         "• `/زخرفة [النص]` أو بالرد ⟸ زخرفة فورية فخمة.\n"
         "• `/ترجمة [النص]` أو بالرد ⟸ ترجمة فورية إلى الإنجليزية.\n\n"
         "👤 **3. قسم المعلومات الشخصية:**\n"
-        "• `/id` أو بالرد ⟸ جلب معلومات الشخص كاملة (الاسم، الآيدي، اليوزر، البايو، والصورة).\n\n"
+        "• `/id` أو بالرد ⟸ جلب معلومات الشخص كاملة.\n\n"
         "🚀 **4. الأدوات والتحكم:**\n"
         "• `/تكرار [العدد] [النص]` ⟸ تكرار رسائل صاروخي.\n"
         "• `/ايقاف_التكرار` ⟸ إيقاف التكرار فوراً.\n"
@@ -335,7 +349,7 @@ async def show_commands(event):
 
 # --- رسالة التشغيل ---
 print("=" * 70)
-print("🚀 [MEGA USERBOT v4.3 Cloner Fixed] تم تحميل الكود بنجاح تام!")
+print("🚀 [MEGA USERBOT v4.3 Smart Auto-Reply] تم تحميل الكود بنجاح تام!")
 print("=" * 70)
 
 client.start()
