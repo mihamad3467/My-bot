@@ -71,6 +71,12 @@ async def delete_custom_reply(event):
     CUSTOM_AUTO_REPLY["text"] = None
     await client.send_message(event.chat_id, "🗑️ **تم مسح الرد التلقائي.**")
 
+# نظام الرد التلقائي عند استلام رسائل خاصة
+@client.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
+async def auto_reply_handler(event):
+    if CUSTOM_AUTO_REPLY["text"] and event.sender_id not in ALLOWED_USERS:
+        await event.reply(CUSTOM_AUTO_REPLY["text"])
+
 @client.on(events.NewMessage(func=lambda e: is_allowed(e) and e.raw_text.startswith('/afk')))
 async def set_afk_mode(event):
     await event.delete()
@@ -103,33 +109,27 @@ async def clone_user_profile(event):
         target_user = await client.get_entity(reply.sender_id)
         full_target = await client(telethon.tl.functions.users.GetFullUserRequest(id=target_user))
         
-        # استخراج البايو بشكل سليم ومضبوط حسب تحديثات تليجرام الأخيرة
         target_bio = ""
         if hasattr(full_target, 'full_user') and hasattr(full_target.full_user, 'about'):
             target_bio = full_target.full_user.about or ""
         elif hasattr(full_target, 'about'):
             target_bio = full_target.about or ""
 
-        # حفظ بياناتنا الأصلية أولاً إذا لم تكن محفوظة
         me = await client.get_me()
         if not ORIGINAL_PROFILE["first_name"]:
             ORIGINAL_PROFILE["first_name"] = me.first_name
-            # جلب بايو حسابنا الحالي لحفظه
             try:
                 my_full = await client(telethon.tl.functions.users.GetFullUserRequest(id='me'))
                 ORIGINAL_PROFILE["about"] = my_full.full_user.about if hasattr(my_full, 'full_user') else ""
             except:
                 ORIGINAL_PROFILE["about"] = ""
         
-        # 1. نسخ الاسم
         new_name = target_user.first_name if target_user.first_name else "مستخدم"
         await client(telethon.tl.functions.account.UpdateProfileRequest(first_name=new_name))
         
-        # 2. نسخ البايو (النبذة)
         if target_bio:
             await client(telethon.tl.functions.account.UpdateProfileRequest(about=target_bio))
         
-        # 3. نسخ الصورة الشخصية إن وجدت
         photo_msg = "ولكن لم يتم العثور على صورة شخصية."
         if target_user.photo:
             path = await client.download_profile_photo(target_user)
@@ -152,13 +152,11 @@ async def restore_user_profile(event):
         await client.send_message(event.chat_id, "⚠️ ليس هناك أي عملية نسخ مسجلة حالياً لكي يتم إرجاعها.")
         return
     try:
-        # استعادة الاسم والبايو الأصليين
         await client(telethon.tl.functions.account.UpdateProfileRequest(
             first_name=ORIGINAL_PROFILE["first_name"],
             about=ORIGINAL_PROFILE["about"] if ORIGINAL_PROFILE["about"] else ""
         ))
         
-        # حذف الصور الشخصية المضافة للرجوع للصورة الأساسية
         photos = await client.get_profile_photos('me')
         if photos:
             await client(telethon.tl.functions.photos.DeletePhotosRequest(id=[photos[0]]))
@@ -225,7 +223,6 @@ async def get_user_info_fixed(event):
         else:
             user = await client.get_entity(event.chat_id)
 
-        # جلب البايو والبيانات الكاملة بشكل آمن ومتوافق تماماً
         bio = "لا توجد نبذة شخصية (Bio) 🔒"
         try:
             full_user = await client(telethon.tl.functions.users.GetFullUserRequest(id=user))
@@ -314,6 +311,9 @@ async def show_commands(event):
     await event.delete()
     text = (
         "🔥 **قائمة الأوامر المحدثة والأسطورية v4.3** 🔥\n\n"
+        "💬 **0. قسم الردود التلقائية:**\n"
+        "• `/اضافة_رد_تلقائي [الرد]` ⟸ لتفعيل الرد التلقائي في الخاص.\n"
+        "• `/حذف_رد_تلقائي` ⟸ لحذف الرد التلقائي.\n\n"
         "🎭 **1. قسم انتحال ونسخ الحسابات:**\n"
         "• `/نسخ` (بالرد على رسالة شخص) ⟸ لنسخ اسمه وبايوه وصورته بحسابك.\n"
         "• `/الغاء_نسخ` ⟸ لاستعادة اسمك وصورتك وبايوك الأصلي.\n\n"
@@ -321,8 +321,7 @@ async def show_commands(event):
         "• `/زخرفة [النص]` أو بالرد ⟸ زخرفة فورية فخمة.\n"
         "• `/ترجمة [النص]` أو بالرد ⟸ ترجمة فورية إلى الإنجليزية.\n\n"
         "👤 **3. قسم المعلومات الشخصية:**\n"
-        "• `/id` أو بالرد ⟸ جلب معلومات الشخص كاملة (الاسم، الآيدي، اليوزر، البايو، والصورة).\n"
-        "• `/معلوماتي` ⟸ معلومات حسابك الحالي.\n\n"
+        "• `/id` أو بالرد ⟸ جلب معلومات الشخص كاملة (الاسم، الآيدي، اليوزر، البايو، والصورة).\n\n"
         "🚀 **4. الأدوات والتحكم:**\n"
         "• `/تكرار [العدد] [النص]` ⟸ تكرار رسائل صاروخي.\n"
         "• `/ايقاف_التكرار` ⟸ إيقاف التكرار فوراً.\n"
